@@ -38,7 +38,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         X_DELTA = dpToPx(getApplicationContext(), 100);
-        Y_DELTA = dpToPx(getApplicationContext(), 65);
+        Y_DELTA = dpToPx(getApplicationContext(), 25);
 
         mGestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
@@ -264,7 +264,7 @@ public class MainActivity extends Activity {
 
     public int getListItemPosition(RecyclerView recyclerView, Point point) {
         View itemView = recyclerView.findChildViewUnder(point.x, point.y);
-        return itemView == null? -1 : recyclerView.getLayoutManager().getPosition(itemView);
+        return recyclerView.getChildAdapterPosition(itemView);
     }
 
     public Point getViewCenterPoint(View view) {
@@ -285,7 +285,7 @@ public class MainActivity extends Activity {
     }
 
     public void createFloatingView(Point point) {
-        mFloatingView = LayoutInflater.from(mFloatingViewContainer.getContext()).inflate(R.layout.item_small, mFloatingViewContainer, false);
+        mFloatingView = LayoutInflater.from(mFloatingViewContainer.getContext()).inflate(R.layout.floating_item, mFloatingViewContainer, false);
         RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams) mFloatingView.getLayoutParams();
         lParams.leftMargin = point.x - X_DELTA;
         lParams.topMargin = point.y - Y_DELTA;
