@@ -27,8 +27,6 @@ public class MainActivity extends Activity {
     private RecyclerView mItemsRecyclerView;
     private View mBufferZone;
     private MyAdapter mAdapter;
-    private static int X_DELTA;
-    private static int Y_DELTA;
 
     private GestureDetector mGestureDetector;
 
@@ -37,10 +35,8 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        X_DELTA = dpToPx(getApplicationContext(), 100);
-        Y_DELTA = dpToPx(getApplicationContext(), 25);
-
         mGestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
                 Point point = new Point((int) e.getRawX(), (int) e.getRawY());
@@ -52,9 +48,11 @@ public class MainActivity extends Activity {
                         MyAdapter.ItemHolder holder = ((MyAdapter.ItemHolder) mItemsRecyclerView.findViewHolderForAdapterPosition(position));
                         CharSequence text = holder.mTextView.getText();
                         Log.d("TESTING", "text " + text);
+                        return true;
 
                     } else if (isBufferZone(point)) {
                         mBufferZone.setBackgroundResource(R.color.selectedColor);
+                        return true;
                     }
                 }
                 return super.onSingleTapUp(e);
@@ -139,8 +137,8 @@ public class MainActivity extends Activity {
             case MotionEvent.ACTION_MOVE:
                 if(isFloatingViewVisible()) {
                     RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) mFloatingView.getLayoutParams();
-                    layoutParams.topMargin = (int) event.getRawY() - Y_DELTA;
-                    layoutParams.leftMargin = (int) event.getRawX() - X_DELTA;
+                    layoutParams.topMargin = point.y - layoutParams.height / 2;
+                    layoutParams.leftMargin = point.x - layoutParams.width / 2;
                     mFloatingView.setLayoutParams(layoutParams);
 
                     if (isListZone(point)) {
@@ -249,16 +247,16 @@ public class MainActivity extends Activity {
             beforeSelectedPosition = -1;
             int oldSelectedPosition = selectedPosition;
             selectedPosition = position;
-            notifyItemChanged(oldSelectedPosition);
             notifyItemChanged(position);
+            notifyItemChanged(oldSelectedPosition);
         }
 
         public void setBeforeSelected(int position) {
             Log.d("TESTING", "select " + position);
             int oldBeforeSelectedPosition = beforeSelectedPosition;
             beforeSelectedPosition = position;
-            notifyItemChanged(oldBeforeSelectedPosition);
             notifyItemChanged(position);
+            notifyItemChanged(oldBeforeSelectedPosition);
         }
     }
 
@@ -287,8 +285,8 @@ public class MainActivity extends Activity {
     public void createFloatingView(Point point) {
         mFloatingView = LayoutInflater.from(mFloatingViewContainer.getContext()).inflate(R.layout.floating_item, mFloatingViewContainer, false);
         RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams) mFloatingView.getLayoutParams();
-        lParams.leftMargin = point.x - X_DELTA;
-        lParams.topMargin = point.y - Y_DELTA;
+        lParams.leftMargin = point.x - lParams.width / 2;
+        lParams.topMargin = point.y - lParams.height / 2;
         mFloatingView.setLayoutParams(lParams);
         mFloatingView.setId(123);
     }
