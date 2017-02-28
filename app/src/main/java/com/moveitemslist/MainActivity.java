@@ -5,7 +5,6 @@ import java.util.List;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.Color;
 import android.graphics.Point;
 import android.os.Bundle;
 import android.os.Handler;
@@ -23,16 +22,15 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
 
-    View mFloatingView;
-    ViewGroup mFloatingViewContainer;
-    RecyclerView mRecyclerView;
-    View mArea;
-    RecyclerView.LayoutManager mLayoutManager;
-    MyAdapter mAdapter;
+    private View mFloatingView;
+    private ViewGroup mFloatingViewContainer;
+    private RecyclerView mItemsRecyclerView;
+    private View mBufferZone;
+    private MyAdapter mAdapter;
     private static int X_DELTA;
     private static int Y_DELTA;
 
-    private GestureDetector gestureDetector;
+    private GestureDetector mGestureDetector;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -42,15 +40,21 @@ public class MainActivity extends Activity {
         X_DELTA = dpToPx(getApplicationContext(), 100);
         Y_DELTA = dpToPx(getApplicationContext(), 65);
 
-        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+        mGestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
                 Point point = new Point((int) e.getRawX(), (int) e.getRawY());
+
                 if (!isFloatingViewVisible()) {
                     if (isListZone(point)) {
-                        mAdapter.setSelected(getListItemPosition(mLayoutManager, getViewCenterPoint(mFloatingView)));
+                        int position = getListItemPosition(mItemsRecyclerView, point);
+                        mAdapter.setSelected(position);
+                        MyAdapter.ItemHolder holder = ((MyAdapter.ItemHolder) mItemsRecyclerView.findViewHolderForAdapterPosition(position));
+                        CharSequence text = holder.mTextView.getText();
+                        Log.d("TESTING", "text " + text);
+
                     } else if (isBufferZone(point)) {
-                        mArea.setBackgroundResource(R.color.selectedColor);
+                        mBufferZone.setBackgroundResource(R.color.selectedColor);
                     }
                 }
                 return super.onSingleTapUp(e);
@@ -59,42 +63,37 @@ public class MainActivity extends Activity {
             @Override
             public void onLongPress(MotionEvent e) {
                 Point point = new Point((int) e.getRawX(), (int) e.getRawY());
-                createFloatingView(point.x, point.y);
+                createFloatingView(point);
+
                 if (!isFloatingViewVisible()) mFloatingViewContainer.addView(mFloatingView);
                 if (isListZone(point)) {
-                    mRecyclerView.dispatchTouchEvent(e);
+                    mItemsRecyclerView.dispatchTouchEvent(e);
 
                 } else if (isBufferZone(point)) {
-                    mArea.dispatchTouchEvent(e);
+                    mBufferZone.dispatchTouchEvent(e);
                 }
                 super.onLongPress(e);
             }
         });
 
         mFloatingViewContainer = (ViewGroup) findViewById(R.id.floating_container);
+        mItemsRecyclerView = (RecyclerView) findViewById(R.id.list);
+        mBufferZone = findViewById(R.id.area);
 
-        mRecyclerView = (RecyclerView) findViewById(R.id.list);
-        mArea = findViewById(R.id.area);
-        mLayoutManager = new LinearLayoutManager(this);
-        mRecyclerView.setLayoutManager(mLayoutManager);
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
+        mItemsRecyclerView.setLayoutManager(layoutManager);
         mAdapter = new MyAdapter();
+        mAdapter.setItems(getFakeItems());
+        mItemsRecyclerView.setAdapter(mAdapter);
 
-        List<Long> items = new ArrayList<>();
-        for (long i = 1; i <= 30; i++) {
-            items.add(i);
-        }
-        mAdapter.setItems(items);
-
-        mRecyclerView.setAdapter(mAdapter);
-
-        mArea.setOnLongClickListener(mOnAreaLongClickListener);
+        mBufferZone.setOnLongClickListener(mOnAreaLongClickListener);
     }
 
     private View.OnLongClickListener mOnAreaLongClickListener = new View.OnLongClickListener() {
         @Override
         public boolean onLongClick(View v) {
             Log.d("TESTING", "areaLongPress");
-            mArea.setBackgroundResource(R.color.defaultColor);
+            mBufferZone.setBackgroundResource(R.color.defaultColor);
             return true;
         }
     };
@@ -109,27 +108,30 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
-        gestureDetector.onTouchEvent(event);
+        mGestureDetector.onTouchEvent(event);
+
         int x = (int) event.getRawX();
         int y = (int) event.getRawY();
         Point point = new Point(x, y);
+
         switch (event.getAction() & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_DOWN:
-                createFloatingView(x, y);
                 if (isListZone(point)) {
-                    return mRecyclerView.dispatchTouchEvent(event);
+                    return mItemsRecyclerView.dispatchTouchEvent(event);
                 } else if (isBufferZone(point)) {
-                    return mArea.dispatchTouchEvent(event);
+                    return mBufferZone.dispatchTouchEvent(event);
                 }
 
             case MotionEvent.ACTION_UP:
                 if (isFloatingViewVisible()) {
                     mFloatingViewContainer.removeView(mFloatingView);
+
                     if (isListZone(point)) {
                         mHandler.removeCallbacks(mAutoSelectListItemRunnable);
-                        mAdapter.setSelected(getListItemPosition(mLayoutManager, getViewCenterPoint(mFloatingView)));
+                        mAdapter.setSelected(getListItemPosition(mItemsRecyclerView, getViewCenterPoint(mFloatingView)));
+
                     } else if (isBufferZone(point)) {
-                        mArea.setBackgroundResource(R.color.selectedColor);
+                        mBufferZone.setBackgroundResource(R.color.selectedColor);
                     }
                 }
                 return true;
@@ -142,11 +144,10 @@ public class MainActivity extends Activity {
                     mFloatingView.setLayoutParams(layoutParams);
 
                     if (isListZone(point)) {
-                        int position = getListItemPosition(mLayoutManager, getViewCenterPoint(mFloatingView));
+                        mBufferZone.setBackgroundResource(R.color.defaultColor);
 
-                        mArea.setBackgroundResource(R.color.defaultColor);
+                        int position = getListItemPosition(mItemsRecyclerView, getViewCenterPoint(mFloatingView));
                         if (position != mTargetListItemPosition) {
-                            Log.d("TESTING", "position " + position);
                             mTargetListItemPosition = position;
                             mAdapter.setBeforeSelected(mTargetListItemPosition);
                             mHandler.removeCallbacks(mAutoSelectListItemRunnable);
@@ -156,15 +157,15 @@ public class MainActivity extends Activity {
                         mTargetListItemPosition = -1;
                         mAdapter.setBeforeSelected(-1);
                         mHandler.removeCallbacks(mAutoSelectListItemRunnable);
-                        mArea.setBackgroundResource(R.color.colorAccentLight);
+                        mBufferZone.setBackgroundResource(R.color.colorAccentLight);
                     }
                     return false;
 
                 } else {
                     if (isBufferZone(point)) {
-                        mArea.dispatchTouchEvent(event);
+                        return mBufferZone.dispatchTouchEvent(event);
                     } else if (isListZone(point)) {
-                        mRecyclerView.dispatchTouchEvent(event);
+                        return mItemsRecyclerView.dispatchTouchEvent(event);
                     }
                 }
 
@@ -180,7 +181,7 @@ public class MainActivity extends Activity {
         @Override
         public void run() {
             mFloatingViewContainer.removeView(mFloatingView);
-            mAdapter.setSelected(getListItemPosition(mLayoutManager, getViewCenterPoint(mFloatingView)));
+            mAdapter.setSelected(getListItemPosition(mItemsRecyclerView, getViewCenterPoint(mFloatingView)));
         }
     };
 
@@ -261,9 +262,9 @@ public class MainActivity extends Activity {
         }
     }
 
-    public int getListItemPosition(RecyclerView.LayoutManager layoutManager, Point point) {
-        View itemView = mRecyclerView.findChildViewUnder(point.x, point.y);
-        return itemView == null? -1 : mLayoutManager.getPosition(itemView);
+    public int getListItemPosition(RecyclerView recyclerView, Point point) {
+        View itemView = recyclerView.findChildViewUnder(point.x, point.y);
+        return itemView == null? -1 : recyclerView.getLayoutManager().getPosition(itemView);
     }
 
     public Point getViewCenterPoint(View view) {
@@ -283,20 +284,28 @@ public class MainActivity extends Activity {
         return mFloatingView != null && mFloatingViewContainer.findViewById(mFloatingView.getId()) != null;
     }
 
-    public void createFloatingView(int x, int y) {
+    public void createFloatingView(Point point) {
         mFloatingView = LayoutInflater.from(mFloatingViewContainer.getContext()).inflate(R.layout.item_small, mFloatingViewContainer, false);
         RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams) mFloatingView.getLayoutParams();
-        lParams.leftMargin = x - X_DELTA;
-        lParams.topMargin = y - Y_DELTA;
+        lParams.leftMargin = point.x - X_DELTA;
+        lParams.topMargin = point.y - Y_DELTA;
         mFloatingView.setLayoutParams(lParams);
         mFloatingView.setId(123);
     }
 
+    public List<Long> getFakeItems() {
+        List<Long> items = new ArrayList<>();
+        for (long i = 1; i <= 30; i++) {
+            items.add(i);
+        }
+        return items;
+    }
+
     private boolean isBufferZone(Point point) {
-        return point.y > mArea.getY();
+        return point.y > mBufferZone.getY();
     }
 
     private boolean isListZone(Point point) {
-        return point.y < mArea.getY();
+        return point.y < mBufferZone.getY();
     }
 }
