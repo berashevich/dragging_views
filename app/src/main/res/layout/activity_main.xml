@@ -6,7 +6,7 @@
     android:layout_height="match_parent">
 
     <TextView
-        android:id="@+id/area"
+        android:id="@+id/buffer_zone"
         android:layout_width="match_parent"
         android:layout_height="70dp"
         android:layout_alignParentBottom="true"
@@ -17,15 +17,8 @@
         android:background="#8e8ee9"/>
 
     <android.support.v7.widget.RecyclerView
-        android:id="@+id/list"
-        android:layout_above="@+id/area"
+        android:id="@+id/issue_duration_recucler_view"
+        android:layout_above="@+id/buffer_zone"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
-
-    <RelativeLayout
-        android:id="@+id/floating_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-    </RelativeLayout>
-
 </RelativeLayout>
