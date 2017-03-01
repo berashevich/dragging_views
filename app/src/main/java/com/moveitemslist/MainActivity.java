@@ -114,9 +114,8 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
-        initFloatingView();
         initIssueDurationRecyclerView();
+        initFloatingView();
         initBufferZone();
     }
 
@@ -128,7 +127,7 @@ public class MainActivity extends Activity {
     }
 
     private void initIssueDurationRecyclerView() {
-        mItemsRecyclerView = (RecyclerView) findViewById(R.id.issue_duration_recucler_view);
+        mItemsRecyclerView = (RecyclerView) findViewById(R.id.issue_duration_recycler_view);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         mItemsRecyclerView.setLayoutManager(layoutManager);
         mIssueDurationAdapter = new IssueDurationAdapter(mOnIssueDurationClickListener, mOnIssueDurationLongClickListener);
