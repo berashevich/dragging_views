@@ -13,14 +13,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 
-public class MainActivity extends Activity {
+public class IssueDurationsActivity extends Activity {
 
     private FloatingIssueWidget mFloatingIssueWidget;
     private RecyclerView mItemsRecyclerView;
     private View mBufferZone;
     private IssueDurationAdapter mIssueDurationAdapter;
 
-    private int mTargetListItemPosition = -1;
+    private ViewGroup mBottomActionZone;
+    private View mBottomMoveZone;
+    private View mBottomCopyZone;
 
     private View.OnLongClickListener mOnBufferLongClickListener = new View.OnLongClickListener() {
         @Override
@@ -35,6 +37,7 @@ public class MainActivity extends Activity {
         @Override
         public void onItemLongClick(String text) {
             showFloatingView();
+            showBottomActionZone();
             mFloatingIssueWidget.setContent("Item content: " + text);
         }
     };
@@ -60,11 +63,17 @@ public class MainActivity extends Activity {
             case MotionEvent.ACTION_UP:
                 if (isFloatingViewVisible()) {
 
-                    hideFloatingView();
                     Point floatingViewCenter = getViewCenterPoint(mFloatingIssueWidget.getView());
 
-                    if (isListZone(floatingViewCenter)) onIssueDurationRecyclerViewActionUp(floatingViewCenter);
-                    else if (isBufferZone(floatingViewCenter)) onBufferZoneActionUp(floatingViewCenter);
+                    setAllZonesDefaultState();
+
+                    if (isMoveBottomZone(floatingViewCenter)) onMoveBottomZoneActionUp();
+                    else if (isCopyBottomZone(floatingViewCenter)) onCopyBottomZoneActionUp();
+                    else if (isListZone(floatingViewCenter)) onIssueDurationRecyclerViewActionUp(floatingViewCenter);
+                    else if (isBufferZone(floatingViewCenter)) onBufferZoneActionUp();
+
+                    hideFloatingView();
+                    hideBottomActionZone();
 
                     return true;
 
@@ -76,8 +85,13 @@ public class MainActivity extends Activity {
                     moveViewTo(mFloatingIssueWidget.getView(), point);
                     Point floatingViewCenter = getViewCenterPoint(mFloatingIssueWidget.getView());
 
-                    if (isListZone(floatingViewCenter)) onIssueDurationRecyclerViewActionMove(floatingViewCenter);
-                    else if (isBufferZone(floatingViewCenter)) onBufferZoneActionMove(floatingViewCenter);
+                    setAllZonesDefaultState();
+
+                    if (isMoveBottomZone(floatingViewCenter)) onMoveBottomZoneActionMove();
+                    else if (isCopyBottomZone(floatingViewCenter)) onCopyBottomZoneActionMove();
+                    else if (isListZone(floatingViewCenter)) onIssueDurationRecyclerViewActionMove(floatingViewCenter);
+                    else if (isBufferZone(floatingViewCenter)) onBufferZoneActionMove( );
+
                     return true;
 
                 } else return super.dispatchTouchEvent(event);
@@ -87,26 +101,42 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void onIssueDurationRecyclerViewActionUp(Point point) {
-        mIssueDurationAdapter.setSelected(getRecyclerViewItemPosition(mItemsRecyclerView, point));
+    private void setAllZonesDefaultState() {
+        mBottomMoveZone.setBackgroundResource(R.color.transparent);
+        mBottomCopyZone.setBackgroundResource(R.color.transparent);
+        mIssueDurationAdapter.setBeforeSelected(-1);
+        mBufferZone.setBackgroundResource(R.color.defaultColor);
     }
 
-    private void onBufferZoneActionUp(Point point) {
-        mBufferZone.setBackgroundResource(R.color.defaultColor);
+    private void onIssueDurationRecyclerViewActionUp(Point point) {
+        int position = getRecyclerViewItemPosition(mItemsRecyclerView, point);
+        mIssueDurationAdapter.setSelected(position);
     }
 
     private void onIssueDurationRecyclerViewActionMove(Point point) {
         int position = getRecyclerViewItemPosition(mItemsRecyclerView, point);
-        if (position != mTargetListItemPosition) {
-            mTargetListItemPosition = position;
-            mIssueDurationAdapter.setBeforeSelected(mTargetListItemPosition);
-        }
+        mIssueDurationAdapter.setBeforeSelected(position);
     }
 
-    private void onBufferZoneActionMove(Point point) {
+    private void onBufferZoneActionUp() {
+    }
+
+    private void onBufferZoneActionMove() {
         mBufferZone.setBackgroundResource(R.color.colorAccentLight);
-        mTargetListItemPosition = -1;
-        mIssueDurationAdapter.setBeforeSelected(-1);
+    }
+
+    private void onMoveBottomZoneActionMove() {
+        mBottomMoveZone.setBackgroundResource(R.color.colorPrimaryAlpha);
+    }
+
+    private void onCopyBottomZoneActionMove() {
+        mBottomCopyZone.setBackgroundResource(R.color.colorPrimaryAlpha);
+    }
+
+    private void onMoveBottomZoneActionUp() {
+    }
+
+    private void onCopyBottomZoneActionUp() {
     }
 
     @Override
@@ -117,6 +147,7 @@ public class MainActivity extends Activity {
         initIssueDurationRecyclerView();
         initFloatingView();
         initBufferZone();
+        initBottomActionZone();
     }
 
     private void initFloatingView() {
@@ -140,12 +171,26 @@ public class MainActivity extends Activity {
         mBufferZone.setOnLongClickListener(mOnBufferLongClickListener);
     }
 
+    private void initBottomActionZone() {
+        mBottomActionZone = (ViewGroup) findViewById(R.id.action_bottom_zone);
+        mBottomMoveZone = findViewById(R.id.move_action_bottom_zone);
+        mBottomCopyZone = findViewById(R.id.copy_action_bottom_zone);
+    }
+
     private void showFloatingView() {
         mFloatingIssueWidget.getView().setVisibility(View.VISIBLE);
     }
 
     private void hideFloatingView() {
         mFloatingIssueWidget.getView().setVisibility(View.GONE);
+    }
+
+    private void showBottomActionZone() {
+        mBottomActionZone.setVisibility(View.VISIBLE);
+    }
+
+    private void hideBottomActionZone() {
+        mBottomActionZone.setVisibility(View.GONE);
     }
 
     private boolean isFloatingViewVisible() {
@@ -166,6 +211,18 @@ public class MainActivity extends Activity {
 
     private boolean isListZone(Point point) {
         return point.y < mBufferZone.getY();
+    }
+
+    private boolean isMoveBottomZone(Point point) {
+        return mBottomActionZone.getVisibility() == View.VISIBLE
+                && point.y > mBottomActionZone.getY()
+                && point.x < mBottomActionZone.getWidth() / 2;
+    }
+
+    private boolean isCopyBottomZone(Point point) {
+        return mBottomActionZone.getVisibility() == View.VISIBLE
+                && point.y > mBottomActionZone.getY()
+                && point.x > mBottomActionZone.getWidth() / 2;
     }
 
     // --------------------------------- TODO Utils methods ---------------------------------------

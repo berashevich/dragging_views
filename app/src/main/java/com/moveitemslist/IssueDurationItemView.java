@@ -31,7 +31,7 @@ public class IssueDurationItemView extends RelativeLayout {
     private void initView() {
         mRoot = (ViewGroup) findViewById(R.id.root);
         mTextView = (TextView) findViewById(R.id.text);
-        mRoot.setOnLongClickListener(mOnLongClickListener);
+        setOnLongClickListener(mOnLongClickListener);
     }
 
     public void setContent(String text) {
@@ -39,8 +39,8 @@ public class IssueDurationItemView extends RelativeLayout {
         mRoot.setBackgroundResource(R.color.white);
     }
 
-    public void setSelected() {
-        mTextView.setText("SELECTED");
+    public void setSelected(Integer position) {
+        mTextView.setText("SELECTED " + position);
         mRoot.setBackgroundResource(R.color.selectedColor);
     }
 
